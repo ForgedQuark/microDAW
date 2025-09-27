@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpectralModularDAW</title>
+    <style>
+        :root 
+        {   --red : #ff0000;
+            --yellow : #ffff00;
+            --green : #00ff00;
+            --blue : #0000ff;
+            --white : #ffffff;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: var(--white);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #4cc9f0, #4361ee);
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .control-panel {
+            background: rgba(25, 25, 35, 0.8);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .control-group {
+            margin-bottom: 25px;
+        }
+        
+        h2 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #4cc9f0;
+            border-bottom: 1px solid #2a2a3a;
+            padding-bottom: 5px;
+        }
+        
+        .param-control {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #b8b8b8;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #2a2a3a;
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #4cc9f0;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        button {
+            background: linear-gradient(90deg, #4361ee, #3a0ca3);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .visualization-area {
+            background: rgba(10, 10, 20, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        #spectrumCanvas {
+            display: block;
+            background: radial-gradient(ellipse at center, #0c0c1d 0%, #050510 100%);
+            cursor: crosshair;
+        }
+        
+        .axis-label {
+            position: absolute;
+            font-size: 0.8rem;
+            color: #6a6a8a;
+        }
+        
+        .time-axis {
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .freq-axis {
+            top: 50%;
+            left: 5px;
+            transform: translateY(-50%) rotate(-90deg);
+            transform-origin: left top;
+        }
+        
+        .status-bar {
+            background: rgba(25, 25, 35, 0.8);
+            border-radius: 10px;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .bpm-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .bpm-value {
+            font-weight: bold;
+            color: #4cc9f0;
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .playback-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .play-btn {
+            background: linear-gradient(90deg, #4cc9f0, #4361ee);
+        }
+        
+        .stop-btn {
+            background: linear-gradient(90deg, #f72585, #b5179e);
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(25, 25, 35, 0.5);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .instructions h3 {
+            color: #4cc9f0;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        
+        .color-legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8rem;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SpectralModularDAW</h1>
+            <p class="subtitle">Интерактивная аудио система с визуализацией частоты и времени</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="control-panel">
+                <div class="control-group">
+                    <h2>Параметры ноты</h2>
+                    <div class="param-control">
+                        <label for="frequency">Частота (Y-ось): <span id="freqValue">440 Гц</span></label>
+                        <input type="range" id="frequency" min="50" max="2000" value="440" step="1">
+                    </div>
+                    <div class="param-control">
+                        <label for="duration">Длительность (X-ось): <span id="durValue">1.0 с</span></label>
+                        <input type="range" id="duration" min="0.1" max="5" value="1" step="0.1">
+                    </div>
+                    <div class="param-control">
+                        <label for="volume">Громкость: <span id="volValue">70%</span></label>
+                        <input type="range" id="volume" min="0" max="100" value="70">
+                    </div>
+                    <div class="param-control">
+                        <label for="pan">Панорама: <span id="panValue">Центр</span></label>
+                        <input type="range" id="pan" min="-100" max="100" value="0">
+                    </div>
+                    <div class="param-control">
+                        <label for="waveform">Форма волны:</label>
+                        <select id="waveform">
+                            <option value="sine">Синус</option>
+                            <option value="square">Прямоугольная</option>
+                            <option value="sawtooth">Пилообразная</option>
+                            <option value="triangle">Треугольная</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h2>Модуляция</h2>
+                    <div class="param-control">
+                        <label for="lfoRate">Частота LFO: <span id="lfoRateValue">2.0 Гц</span></label>
+                        <input type="range" id="lfoRate" min="0.1" max="10" value="2" step="0.1">
+                    </div>
+                    <div class="param-control">
+                        <label for="lfoDepth">Глубина LFO: <span id="lfoDepthValue">30%</span></label>
+                        <input type="range" id="lfoDepth" min="0" max="100" value="30">
+                    </div>
+                    <div class="param-control">
+                        <label for="lfoTarget">Цель модуляции:</label>
+                        <select id="lfoTarget">
+                            <option value="frequency">Частота</option>
+                            <option value="pan">Панорама</option>
+                            <option value="volume">Громкость</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h2>Действия</h2>
+                    <button id="addNoteBtn">Добавить ноту</button>
+                    <button id="clearBtn">Очистить все ноты</button>
+                    <button id="randomBtn">Случайная композиция</button>
+                </div>
+                
+                <div class="color-legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--red);"></div>
+                        <span>Лево</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--blue);"></div>
+                        <span>Право</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--yellow);"></div>
+                        <span>LFO частоты</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--green);"></div> 
+                        <span>LFO громкости</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="visualization-area">
+                <canvas id="spectrumCanvas" width="800" height="500"></canvas>
+                <div class="axis-label time-axis">Время (секунды) →</div>
+                <div class="axis-label freq-axis">↑ Частота (Гц)</div>
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <div class="bpm-control">
+                <label for="bpm">BPM:</label>
+                <input type="range" id="bpm" min="40" max="200" value="120">
+                <span class="bpm-value" id="bpmValue">120</span>
+            </div>
+            
+            <div class="playback-controls">
+                <button class="play-btn" id="playBtn">▶ Воспроизвести</button>
+                <button class="stop-btn" id="stopBtn">■ Стоп</button>
+            </div>
+            
+            <div id="status">Готов к работе</div>
+        </div>
+        
+        <div class="instructions">
+            <h3>Инструкция по использованию:</h3>
+            <ul>
+                <li>Настройте параметры ноты с помощью ползунков</li>
+                <li>Нажмите "Добавить ноту" или кликните на холст для размещения ноты</li>
+                <li>Перетащите ноту для изменения её позиции</li>
+                <li>Используйте LFO для добавления модуляции частоте, панораме или громкости</li>
+                <li>Нажмите "Воспроизвести" для прослушивания композиции</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Основной класс приложения
+        class SpectralModularDAW {
+            constructor() {
+                this.audioContext = null;
+                this.notes = [];
+                this.isPlaying = false;
+                this.currentTime = 0;
+                this.startTime = 0;
+                this.bpm = 120;
+                this.canvas = document.getElementById('spectrumCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                this.initializeAudio();
+                this.setupEventListeners();
+                this.setupCanvas();
+                this.animationFrame = null;
+                
+                // Добавим несколько примеров нот для демонстрации
+                this.addExampleNotes();
+            }
+            
+            initializeAudio() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.setStatus('Аудио система инициализирована');
+                } catch (e) {
+                    this.setStatus('Ошибка инициализации аудио: ' + e.message);
+                }
+            }
+            
+            setupEventListeners() {
+                // Кнопки управления
+                document.getElementById('addNoteBtn').addEventListener('click', () => this.addNoteAtCenter());
+                document.getElementById('clearBtn').addEventListener('click', () => this.clearNotes());
+                document.getElementById('randomBtn').addEventListener('click', () => this.generateRandomComposition());
+                document.getElementById('playBtn').addEventListener('click', () => this.startPlayback());
+                document.getElementById('stopBtn').addEventListener('click', () => this.stopPlayback());
+                
+                // Обновление параметров в реальном времени
+                document.getElementById('frequency').addEventListener('input', (e) => {
+                    document.getElementById('freqValue').textContent = e.target.value + ' Гц';
+                });
+                
+                document.getElementById('duration').addEventListener('input', (e) => {
+                    document.getElementById('durValue').textContent = e.target.value + ' с';
+                });
+                
+                document.getElementById('volume').addEventListener('input', (e) => {
+                    document.getElementById('volValue').textContent = e.target.value + '%';
+                });
+                
+                document.getElementById('pan').addEventListener('input', (e) => {
+                    const panValue = parseInt(e.target.value);
+                    let panText = 'Центр';
+                    if (panValue < -30) panText = 'Лево';
+                    if (panValue > 30) panText = 'Право';
+                    document.getElementById('panValue').textContent = panText;
+                });
+                
+                document.getElementById('lfoRate').addEventListener('input', (e) => {
+                    document.getElementById('lfoRateValue').textContent = e.target.value + ' Гц';
+                });
+                
+                document.getElementById('lfoDepth').addEventListener('input', (e) => {
+                    document.getElementById('lfoDepthValue').textContent = e.target.value + '%';
+                });
+                
+                document.getElementById('bpm').addEventListener('input', (e) => {
+                    this.bpm = parseInt(e.target.value);
+                    document.getElementById('bpmValue').textContent = this.bpm;
+                });
+                
+                // Обработка кликов по холсту
+                this.canvas.addEventListener('click', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    this.addNoteAtPosition(x, y);
+                });
+                
+                // Обработка изменения размера окна
+                window.addEventListener('resize', () => this.setupCanvas());
+            }
+            
+            setupCanvas() {
+                const container = this.canvas.parentElement;
+                this.canvas.width = container.clientWidth;
+                this.canvas.height = container.clientHeight;
+                this.draw();
+            }
+            
+            addExampleNotes() {
+                // Добавляем несколько нот для демонстрации
+                setTimeout(() => {
+                    this.addNote(1, 261.63, 1.5, 80, 0, 'sine', 2, 20, 'frequency'); // До
+                    this.addNote(3, 329.63, 1, 70, -50, 'sawtooth', 5, 30, 'pan'); // Ми
+                    this.addNote(5, 392.00, 2, 90, 50, 'square', 1, 40, 'volume'); // Соль
+                    this.draw();
+                }, 500);
+            }
+            
+            addNoteAtCenter() {
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+                this.addNoteAtPosition(centerX, centerY);
+            }
+            
+            addNoteAtPosition(x, y) {
+                // Преобразуем координаты в параметры ноты
+                const time = (x / this.canvas.width) * 10; // 10 секунд на всю ширину
+                const frequency = 50 + (1 - y / this.canvas.height) * 1950; // 50-2000 Гц
+                
+                const duration = parseFloat(document.getElementById('duration').value);
+                const volume = parseInt(document.getElementById('volume').value);
+                const pan = parseInt(document.getElementById('pan').value);
+                const waveform = document.getElementById('waveform').value;
+                const lfoRate = parseFloat(document.getElementById('lfoRate').value);
+                const lfoDepth = parseInt(document.getElementById('lfoDepth').value);
+                const lfoTarget = document.getElementById('lfoTarget').value;
+                
+                this.addNote(time, frequency, duration, volume, pan, waveform, lfoRate, lfoDepth, lfoTarget);
+                this.draw();
+            }
+            
+            addNote(time, frequency, duration, volume, pan, waveform, lfoRate, lfoDepth, lfoTarget) {
+                const note = {
+                    id: Date.now() + Math.random(),
+                    time: time,
+                    frequency: frequency,
+                    duration: duration,
+                    volume: volume / 100, // нормализуем до 0-1
+                    pan: pan / 100, // нормализуем до -1 - +1
+                    waveform: waveform,
+                    lfoRate: lfoRate,
+                    lfoDepth: lfoDepth / 100, // нормализуем до 0-1
+                    lfoTarget: lfoTarget,
+                    lfoPhase: Math.random() * Math.PI * 2 // случайная фаза для разнообразия
+                };
+                
+                this.notes.push(note);
+                this.setStatus(`Добавлена нота: ${frequency.toFixed(1)} Гц`);
+                
+                return note;
+            }
+            
+            clearNotes() {
+                this.notes = [];
+                this.draw();
+                this.setStatus('Все ноты удалены');
+            }
+            
+            generateRandomComposition() {
+                this.clearNotes();
+                
+                const waveforms = ['sine', 'square', 'sawtooth', 'triangle'];
+                const lfoTargets = ['frequency', 'pan', 'volume'];
+                
+                for (let i = 0; i < 8; i++) {
+                    const time = 1 + Math.random() * 8;
+                    const frequency = 100 + Math.random() * 1000;
+                    const duration = 0.5 + Math.random() * 2;
+                    const volume = 30 + Math.random() * 70;
+                    const pan = -80 + Math.random() * 160;
+                    const waveform = waveforms[Math.floor(Math.random() * waveforms.length)];
+                    const lfoRate = 0.5 + Math.random() * 5;
+                    const lfoDepth = 10 + Math.random() * 60;
+                    const lfoTarget = lfoTargets[Math.floor(Math.random() * lfoTargets.length)];
+                    
+                    this.addNote(time, frequency, duration, volume, pan, waveform, lfoRate, lfoDepth, lfoTarget);
+                }
+                
+                this.draw();
+                this.setStatus('Создана случайная композиция');
+            }
+            
+            startPlayback() {
+                if (this.isPlaying) return;
+                
+                this.isPlaying = true;
+                this.startTime = this.audioContext.currentTime;
+                this.currentTime = 0;
+                
+                // Воспроизводим все ноты
+                this.notes.forEach(note => {
+                    this.playNote(note);
+                });
+                
+                this.setStatus('Воспроизведение начато');
+                this.animatePlayback();
+            }
+            
+            stopPlayback() {
+                this.isPlaying = false;
+                if (this.animationFrame) {
+                    cancelAnimationFrame(this.animationFrame);
+                    this.animationFrame = null;
+                }
+                this.currentTime = 0;
+                this.draw();
+                this.setStatus('Воспроизведение остановлено');
+            }
+            
+            playNote(note) {
+                if (!this.audioContext) return;
+                
+                const startTime = this.startTime + note.time;
+                
+                // Создаем осциллятор
+                const oscillator = this.audioContext.createOscillator();
+                oscillator.type = note.waveform;
+                oscillator.frequency.setValueAtTime(note.frequency, startTime);
+                
+                // Создаем узел громкости
+                const gainNode = this.audioContext.createGain();
+                gainNode.gain.setValueAtTime(note.volume, startTime);
+                
+                // Создаем панораму
+                const panner = this.audioContext.createStereoPanner();
+                panner.pan.setValueAtTime(note.pan, startTime);
+                
+                // Применяем LFO модуляцию
+                this.applyLFOModulation(note, oscillator, gainNode, panner, startTime);
+                
+                // Настраиваем огибающую
+                gainNode.gain.linearRampToValueAtTime(0, startTime + note.duration);
+                
+                // Соединяем узлы
+                oscillator.connect(gainNode);
+                gainNode.connect(panner);
+                panner.connect(this.audioContext.destination);
+                
+                // Запускаем и останавливаем осциллятор
+                oscillator.start(startTime);
+                oscillator.stop(startTime + note.duration);
+            }
+            
+            applyLFOModulation(note, oscillator, gainNode, panner, startTime) {
+                const lfoDepth = note.lfoDepth;
+                const lfoRate = note.lfoRate;
+                
+                // Создаем LFO осциллятор
+                const lfoOscillator = this.audioContext.createOscillator();
+                lfoOscillator.type = 'sine';
+                lfoOscillator.frequency.setValueAtTime(lfoRate, startTime);
+                
+                // Создаем узел для управления глубиной модуляции
+                const lfoGain = this.audioContext.createGain();
+                lfoGain.gain.setValueAtTime(lfoDepth, startTime);
+                
+                // Соединяем LFO
+                lfoOscillator.connect(lfoGain);
+                
+                // Применяем модуляцию к выбранной цели
+                switch (note.lfoTarget) {
+                    case 'frequency':
+                        lfoGain.connect(oscillator.frequency);
+                        oscillator.frequency.setValueAtTime(note.frequency, startTime);
+                        break;
+                    case 'pan':
+                        lfoGain.connect(panner.pan);
+                        panner.pan.setValueAtTime(note.pan, startTime);
+                        break;
+                    case 'volume':
+                        lfoGain.connect(gainNode.gain);
+                        gainNode.gain.setValueAtTime(note.volume, startTime);
+                        break;
+                }
+                
+                lfoOscillator.start(startTime);
+                lfoOscillator.stop(startTime + note.duration);
+            }
+            
+            animatePlayback() {
+                if (!this.isPlaying) return;
+                
+                this.currentTime = this.audioContext.currentTime - this.startTime;
+                this.draw();
+                
+                this.animationFrame = requestAnimationFrame(() => this.animatePlayback());
+            }
+            
+            draw() {
+                const ctx = this.ctx;
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                
+                // Очищаем холст
+                ctx.fillStyle = 'rgba(12, 12, 29, 0.7)';
+                ctx.fillRect(0, 0, width, height);
+                
+                // Рисуем сетку
+                this.drawGrid();
+                
+                // Рисуем ноты
+                this.notes.forEach(note => {
+                    this.drawNote(note);
+                });
+                
+                // Рисуем курсор воспроизведения, если активно
+                if (this.isPlaying) {
+                    this.drawPlaybackCursor();
+                }
+            }
+            
+            drawGrid() {
+                const ctx = this.ctx;
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                
+                ctx.strokeStyle = 'rgba(100, 100, 150, 0.2)';
+                ctx.lineWidth = 1;
+                
+                // Вертикальные линии (время)
+                for (let i = 1; i < 10; i++) {
+                    const x = (i / 10) * width;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+                
+                // Горизонтальные линии (частота)
+                for (let i = 1; i < 10; i++) {
+                    const y = (i / 10) * height;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+            }
+            
+            drawNote(note) {
+                const ctx = this.ctx;
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                
+                // Преобразуем параметры ноты в координаты
+                const x = (note.time / 10) * width;
+                const y = height - ((note.frequency - 50) / 1950) * height;
+                const noteWidth = (note.duration / 10) * width;
+                const noteHeight = 20;
+                
+                // Определяем цвет в зависимости от панорамы
+                let hue = 200; // Синий по умолчанию (центр)
+                if (note.pan < 0) {
+                    hue = 0; // Красный для левого канала
+                } else if (note.pan > 0) {
+                    hue = 240; // Синий для правого канала
+                }
+                
+                const saturation = 80;
+                const lightness = 30 + note.volume * 40;
+                
+                // Основной цвет ноты
+                ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+                ctx.fillRect(x - noteWidth/2, y - noteHeight/2, noteWidth, noteHeight);
+                
+                // Рамка ноты
+                ctx.strokeStyle = `hsl(${hue}, ${saturation}%, ${lightness + 20}%)`;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x - noteWidth/2, y - noteHeight/2, noteWidth, noteHeight);
+                
+                // Эффект мерцания для LFO
+                if (this.isPlaying) {
+                    const currentTime = this.audioContext.currentTime;
+                    const lfoValue = Math.sin(note.lfoPhase + currentTime * note.lfoRate * 2 * Math.PI);
+                    
+                    let flickerColor;
+                    switch (note.lfoTarget) {
+                        case 'frequency':
+                            flickerColor = 'rgba(255, 255, 100, 0.7)'; // Желтый для частоты
+                            break;
+                        case 'pan':
+                            flickerColor = 'rgba(100, 255, 255, 0.7)'; // Голубой для панорамы
+                            break;
+                        case 'volume':
+                            flickerColor = 'rgba(100, 255, 100, 0.7)'; // Зеленый для громкости
+                            break;
+                    }
+                    
+                    const flickerAlpha = 0.3 + 0.4 * (lfoValue * note.lfoDepth);
+                    ctx.fillStyle = flickerColor.replace('0.7', flickerAlpha.toString());
+                    ctx.fillRect(x - noteWidth/2, y - noteHeight/2, noteWidth, noteHeight);
+                }
+                
+                // Текст с частотой
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(note.frequency.toFixed(0) + ' Гц', x, y + 4);
+            }
+            
+            drawPlaybackCursor() {
+                const ctx = this.ctx;
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                
+                const x = (this.currentTime / 10) * width;
+                
+                ctx.strokeStyle = '#4cc9f0';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+                
+                // Треугольник курсора
+                ctx.fillStyle = '#4cc9f0';
+                ctx.beginPath();
+                ctx.moveTo(x - 8, 10);
+                ctx.lineTo(x + 8, 10);
+                ctx.lineTo(x, 20);
+                ctx.closePath();
+                ctx.fill();
+            }
+            
+            setStatus(message) {
+                document.getElementById('status').textContent = message;
+            }
+        }
+        
+        // Инициализация приложения после загрузки страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            new SpectralModularDAW();
+        });
+    </script>
+</body>
+</html>
