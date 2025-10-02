@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAW с LFO модуляцией</title>
+    <style>
+        /* Общие стили */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #4cc9f0, #4361ee);
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: #a0a0c0;
+        }
+        
+        /* Основной контент */
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        /* Панель управления */
+        .control-panel {
+            background: rgba(25, 25, 35, 0.8);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .control-group {
+            margin-bottom: 25px;
+        }
+        
+        h2 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #4cc9f0;
+            border-bottom: 1px solid #2a2a3a;
+            padding-bottom: 5px;
+        }
+        
+        .param-control {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #b8b8b8;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #2a2a3a;
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #4cc9f0;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        button {
+            background: linear-gradient(90deg, #4361ee, #3a0ca3);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
+        }
+        
+        select {
+            width: 100%;
+            padding: 8px;
+            background: #2a2a3a;
+            border: 1px solid #3a3a4a;
+            border-radius: 4px;
+            color: white;
+            margin-bottom: 10px;
+        }
+        
+        /* Визуализация */
+        .visualization-area {
+            background: rgba(10, 10, 20, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        #spectrumCanvas {
+            display: block;
+            background: radial-gradient(ellipse at center, #0c0c1d 0%, #050510 100%);
+            cursor: crosshair;
+        }
+        
+        /* Легенда цветов */
+        .color-legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8rem;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+        
+        /* Библиотека волн */
+        .waveform-library {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .waveform-library h3 {
+            margin-bottom: 15px;
+            color: #4cc9f0;
+            font-size: 16px;
+        }
+
+        .waveform-category {
+            margin-bottom: 15px;
+        }
+
+        .waveform-category h4 {
+            margin-bottom: 8px;
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .waveform-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+        }
+
+        .waveform-item {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .waveform-item:hover {
+            background: rgba(76, 201, 240, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .waveform-item.active {
+            background: rgba(76, 201, 240, 0.5);
+            color: white;
+        }
+        
+        .wave-description {
+            font-size: 0.8rem;
+            color: #a0a0c0;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        /* Всплывающее окно настройки ноты */
+        .note-tooltip {
+            position: absolute;
+            background: rgba(40, 40, 60, 0.95);
+            border: 1px solid #4cc9f0;
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            width: 250px;
+            display: none;
+        }
+        
+        .note-tooltip h3 {
+            margin-bottom: 10px;
+            color: #4cc9f0;
+            font-size: 1.1rem;
+        }
+        
+        /* Статус-бар */
+        .status-bar {
+            background: rgba(25, 25, 35, 0.8);
+            border-radius: 10px;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .playback-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .play-btn {
+            background: linear-gradient(90deg, #4cc9f0, #4361ee);
+        }
+        
+        .stop-btn {
+            background: linear-gradient(90deg, #f72585, #b5179e);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DAW с LFO модуляцией</h1>
+            <p class="subtitle">Low Frequency Oscillator визуализация</p>
+        </header>
+        
+        <div class="main-content">
+            <!-- Панель управления -->
+            <div class="control-panel">
+                <!-- Параметры ноты -->
+                <div class="control-group">
+                    <h2>Параметры ноты</h2>
+                    <div class="param-control">
+                        <label for="frequency">Частота: <span id="freqValue">440 Гц</span></label>
+                        <input type="range" id="frequency" min="50" max="2000" value="440" step="1">
+                    </div>
+                    <div class="param-control">
+                        <label for="duration">Длительность: <span id="durValue">1.0 с</span></label>
+                        <input type="range" id="duration" min="0.1" max="5" value="1" step="0.1">
+                    </div>
+                    <div class="param-control">
+                        <label for="offset">Смещение: <span id="offsetValue">0.0 с</span></label>
+                        <input type="range" id="offset" min="0" max="2" value="0" step="0.1">
+                    </div>
+                    <div class="param-control">
+                        <label for="volume">Громкость: <span id="volValue">70%</span></label>
+                        <input type="range" id="volume" min="0" max="100" value="70">
+                    </div>
+                    <div class="param-control">
+                        <label for="pan">Панорама: <span id="panValue">Центр</span></label>
+                        <input type="range" id="pan" min="-100" max="100" value="0">
+                    </div>
+                    <div class="param-control">
+                        <label for="waveform">Форма волны:</label>
+                        <select id="waveform"></select>
+                        <div id="waveDescription" class="wave-description">
+                            Выберите форму волны для новой ноты
+                        </div>
+                    </div>
+                    
+                    <!-- Библиотека волн -->
+                    <div class="waveform-library">
+                        <h3>Библиотека волн</h3>
+                        <div class="waveform-categories">
+                            <div class="waveform-category">
+                                <h4>Базовые</h4>
+                                <div class="waveform-list">
+                                    <div class="waveform-item active" data-wave="sine">Синус</div>
+                                    <div class="waveform-item" data-wave="triangle">Треугольная</div>
+                                    <div class="waveform-item" data-wave="sawtooth">Пилообразная</div>
+                                    <div class="waveform-item" data-wave="square">Прямоугольная</div>
+                                </div>
+                            </div>
+                            <div class="waveform-category">
+                                <h4>Специальные</h4>
+                                <div class="waveform-list">
+                                    <div class="waveform-item" data-wave="pulse25">Импульсная 25%</div>
+                                    <div class="waveform-item" data-wave="pulse10">Импульсная 10%</div>
+                                    <div class="waveform-item" data-wave="richsine">Богатый синус</div>
+                                    <div class="waveform-item" data-wave="supersaw">Супер пила</div>
+                                </div>
+                            </div>
+                            <div class="waveform-category">
+                                <h4>Шумы</h4>
+                                <div class="waveform-list">
+                                    <div class="waveform-item" data-wave="whitenoise">Белый шум</div>
+                                    <div class="waveform-item" data-wave="pinknoise">Розовый шум</div>
+                                    <div class="waveform-item" data-wave="brownnoise">Коричневый шум</div>
+                                </div>
+                            </div>
+                            <div class="waveform-category">
+                                <h4>Экспериментальные</h4>
+                                <div class="waveform-list">
+                                    <div class="waveform-item" data-wave="hyperbolicsine">Гиперб. синус</div>
+                                    <div class="waveform-item" data-wave="hyperboliccosine">Гиперб. косинус</div>
+                                    <div class="waveform-item" data-wave="hyperbolictangent">Гиперб. тангенс</div>
+                                    <div class="waveform-item" data-wave="tanhcospower">Tanh(Cos(x^Cos(x)))</div>
+                                    <div class="waveform-item" data-wave="sinxpowersinx">sinxpowersinx</div>
+                                    <div class="waveform-item" data-wave="jacobisn">Эллиптическая SN</div>
+                                    <div class="waveform-item" data-wave="sintanh">Sin*Tanh</div>
+                                    <div class="waveform-item" data-wave="phasemodulated">Фазовая модуляция</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- LFO модуляция -->
+                <div class="control-group">
+                    <h2>LFO модуляция</h2>
+                    <div class="param-control">
+                        <label for="lfoRate">Частота LFO: <span id="lfoRateValue">2.0 Гц</span></label>
+                        <input type="range" id="lfoRate" min="0.1" max="10" value="2" step="0.1">
+                    </div>
+                    <div class="param-control">
+                        <label for="lfoDepth">Глубина LFO: <span id="lfoDepthValue">30%</span></label>
+                        <input type="range" id="lfoDepth" min="0" max="100" value="30">
+                    </div>
+                    <div class="param-control">
+                        <label for="lfoTarget">Цель модуляции:</label>
+                        <select id="lfoTarget">
+                            <option value="frequency">Частота ноты</option>
+                            <option value="pan">Панорама ноты</option>
+                            <option value="volume">Громкость ноты</option>
+                            <option value="lfoRate" disabled>LFO Частота (скоро)</option>
+                            <option value="lfoDepth" disabled>LFO Глубина (скоро)</option>
+                            <option value="lfoPan" disabled>LFO Панорама (скоро)</option>
+                        </select>
+                        <div class="wave-description">
+                            💡 LFO применяется к выбранному параметру ноты
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Действия -->
+                <div class="control-group">
+                    <h2>Действия</h2>
+                    <button id="addNoteBtn">Добавить ноту</button>
+                    <button id="clearBtn">Очистить все ноты</button>
+                    <button id="randomBtn">Случайная композиция</button>
+                </div>
+                
+                <!-- Легенда цветов -->
+                <div class="color-legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff0000;"></div>
+                        <span>LFO частоты</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #00ff00;"></div>
+                        <span>LFO громкости</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #0000ff;"></div>
+                        <span>LFO панорамы</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Область визуализации -->
+            <div class="visualization-area">
+                <canvas id="spectrumCanvas" width="800" height="500"></canvas>
+                
+                <!-- Всплывающее окно для настройки ноты -->
+                <div class="note-tooltip" id="noteTooltip">
+                    <h3>Настройка ноты</h3>
+                    <div class="param-control">
+                        <label for="tooltipWaveform">Форма волны:</label>
+                        <select id="tooltipWaveform">
+                            <option value="sine">Синус</option>
+                            <option value="triangle">Треугольная</option>
+                            <option value="sawtooth">Пилообразная</option>
+                            <option value="square">Прямоугольная (50%)</option>
+                            <option value="pulse25">Импульсная (25%)</option>
+                            <option value="pulse10">Импульсная (10%)</option>
+                            <option value="richsine">Богатый синус</option>
+                            <option value="supersaw">Супер пила</option>
+                            <option value="whitenoise">Белый шум</option>
+                            <option value="pinknoise">Розовый шум</option>
+                            <option value="brownnoise">Коричневый шум</option>
+                            <option value="hyperbolicsine">Гиперб. синус</option>
+                            <option value="hyperboliccosine">Гиперб. косинус</option>
+                            <option value="hyperbolictangent">Гиперб. тангенс</option>
+                            <option value="tanhcospower">Tanh(Cos(x^Cos(x)))</option>
+                            <option value="jacobisn">Эллиптическая SN</option>
+                            <option value="sintanh">Sin*Tanh</option>
+                            <option value="sinxpowersinx">sinxpowersinx</option>
+                            <option value="phasemodulated">Фазовая модуляция</option>
+                        </select>
+                    </div>
+                    <div class="param-control">
+                        <label for="tooltipFrequency">Частота: <span id="tooltipFreqValue">440 Гц</span></label>
+                        <input type="range" id="tooltipFrequency" min="50" max="2000" value="440" step="1">
+                    </div>
+                    <div class="param-control">
+                        <label for="tooltipDuration">Длительность: <span id="tooltipDurValue">1.0 с</span></label>
+                        <input type="range" id="tooltipDuration" min="0.1" max="5" value="1" step="0.1">
+                    </div>
+                    <div class="param-control">
+                        <label for="tooltipOffset">Смещение: <span id="tooltipOffsetValue">0.0 с</span></label>
+                        <input type="range" id="tooltipOffset" min="0" max="2" value="0" step="0.1">
+                    </div>
+                    <div class="param-control">
+                        <label for="tooltipVolume">Громкость: <span id="tooltipVolValue">70%</span></label>
+                        <input type="range" id="tooltipVolume" min="0" max="100" value="70">
+                    </div>
+                    <button id="updateNoteBtn">Обновить ноту</button>
+                    <button id="deleteNoteBtn">Удалить ноту</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Статус-бар -->
+        <div class="status-bar">
+            <div class="playback-controls">
+                <button class="play-btn" id="playBtn">▶ Воспроизвести</button>
+                <button class="stop-btn" id="stopBtn">■ Стоп</button>
+            </div>
+            <div id="status">Готов к работе</div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Генератор пользовательских форм волн
+         * Создает различные типы аудио волн для синтезатора
+         */
+        class WaveformGenerator {
+            constructor() {
+                this.audioContext = null;
+            }
+
+            // Устанавливает аудио контекст для генератора
+            setAudioContext(audioContext) {
+                this.audioContext = audioContext;
+            }
+
+            // Генерация синусоидальной волны
+            sine(length = 4096) {
+                const waveform = new Float32Array(length);
+                for (let i = 0; i < length; i++) {
+                    const phase = (i / length) * 2 * Math.PI;
+                    waveform[i] = Math.sin(phase);
+                }
+                return waveform;
+            }
+
+            // Генерация пилообразной волны
+            sawtooth(length = 4096) {
+                const waveform = new Float32Array(length);
+                for (let i = 0; i < length; i++) {
+                    waveform[i] = 2 * (i / length) - 1;
+                }
+                return waveform;
+            }
+
+            // Генерация прямоугольной волны с заданным коэффициентом заполнения
+            square(length = 4096, dutyCycle = 0.5) {
+                const waveform = new Float32Array(length);
+                const threshold = Math.floor(dutyCycle * length);
+                for (let i = 0; i < length; i++) {
+                    waveform[i] = i < threshold ? 1 : -1;
+                }
+                return waveform;
+            }
+
+            // Генерация треугольной волны
+            triangle(length = 4096) {
+                const waveform = new Float32Array(length);
+                for (let i = 0; i < length; i++) {
+                    const position = 4 * (i / length);
+                    if (position < 1) {
+                        waveform[i] = position;
+                    } else if (position < 3) {
+                        waveform[i] = 2 - position;
+                    } else {
+                        waveform[i] = position - 4;
+                    }
+                }
+                return waveform;
+            }
+
+            // Генерация белого шума
+            whiteNoise(length = 4096) {
+                const waveform = new Float32Array(length);
+                for (let i = 0; i < length; i++) {
+                    waveform[i] = Math.random() * 2 - 1;
+                }
+                return waveform;
+            }
+
+            // Генерация розового шума
+            pinkNoise(length = 4096) {
+                const waveform = new Float32Array(length);
+                let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+                
+                for (let i = 0; i < length; i++) {
+                    const white = Math.random() * 2 - 1;
+                    b0 = 0.99886 * b0 + white * 0.0555179;
+                    b1 = 0.99332 * b1 + white * 0.0750759;
+                    b2 = 0.96900 * b2 + white * 0.1538520;
+                    b3 = 0.86650 * b3 + white * 0.3104856;
+                    b4 = 0.55000 * b4 + white * 0.5329522;
+                    b5 = -0.7616 * b5 - white * 0.0168980;
+                    waveform[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                    waveform[i] *= 0.11;
+                    b6 = white * 0.115926;
+                }
+                return waveform;
+            }
+
+            // Генерация коричневого шума
+            brownNoise(length = 4096) {
+                const waveform = new Float32Array(length);
+                let lastOut = 0;
+                for (let i = 0; i < length; i++) {
+                    const white = Math.random() * 2 - 1;
+                    lastOut = (lastOut + (0.02 * white)) / 1.02;
+                    waveform[i] = lastOut * 3.5;
+                }
+                return waveform;
+            }
+
+            // Генерация импульсной волны с заданной шириной импульса
+            pulse(width = 0.25, length = 4096) {
+                return this.square(length, width);
+            }
+
+            // Генерация "супер-пилы" - множества детюнированных пилообразных волн
+            superSaw(detune = 0.1, numOscillators = 7, length = 4096) {
+                const waveform = new Float32Array(length);
+                for (let i = 0; i < length; i++) {
+                    let sample = 0;
+                    const phase = (i / length) * 2 * Math.PI;
+                    
+                    for (let j = 0; j < numOscillators; j++) {
+                        const detuneFactor = 1 + (j - (numOscillators - 1) / 2) * detune;
+                        sample += Math.sin(phase * detuneFactor);
+                    }
+                    
+                    waveform[i] = sample / numOscillators;
+                }
+                return waveform;
+            }
+
+            // Генерация обогащенной синусоидальной волны с гармониками
+            richSine(harmonic3 = 0.3, harmonic7 = 0.1, length = 4096) {
+                const waveform = new Float32Array(length);
+                for (let i = 0; i < length; i++) {
+                    const phase = (i / length) * 2 * Math.PI;
+                    waveform[i] = Math.sin(phase) + 
+                                harmonic3 * Math.sin(3 * phase) + 
+                                harmonic7 * Math.sin(7 * phase);
+                    waveform[i] /= (1 + harmonic3 + harmonic7);
+                }
+                return waveform;
+            }
+
+            // Генерация гиперболического синуса
+            hyperbolicSine(length = 4096) {
+                const waveform = new Float32Array(length);
+                for (let i = 0; i < length; i++) {
+                    const x = (i / length - 0.5) * 4;
+                    waveform[i] = (Math.exp(x) - Math.exp(-x)) / 2;
+                }
+                return this.normalize(waveform);
+            }
+
+            // Генерация гиперболического косинуса
+            hyperbolicCosine(length = 4096) {
+                const waveform = new Float32Array(length);
+                for (let i = 0; i < length; i++) {
+                    const x = (i / length - 0.5) * 4;
+                    waveform[i] = (Math.exp(x) + Math.exp(-x)) / 2;
+                }
+                return this.normalize(waveform);
+            }
+
+            // Генерация гиперболического тангенса
+            hyperbolicTangent(length = 4096) {
+                const waveform = new Float32Array(length);
+                for (let i = 0; i < length; i++) {
+                    const x = (i / length - 0.5) * 8;
+                    waveform[i] = Math.tanh(x);
+                }
+                return waveform;
+            }
+
+            // Генерация сложной математической формы волны
+            tanhCosPower(length = 4096) {
+                const waveform = new Float32Array(length);
+                for (let i = 0; i < length; i++) {
+                    const x = (i / length) * 18 * Math.PI;
+                    const innerCos = Math.cos(x);
+                    const power = Math.pow(x, innerCos);
+                    const cosPower = Math.cos(power);
+                    waveform[i] = Math.tanh(cosPower);
+                }
+                return this.normalize(waveform);
+            }
+            sinxpowersinx(length = 4096)
+            {   const waveform = new Float32Array(length);
+                for (let i = 0; i < length; i++)
+                {   const x = ((i / length) * 18 * Math.PI)**(2/3);
+                    const innerSin = Math.sin(3*x);
+                    const power = Math.pow(x, innerSin);
+                    waveform[i] = Math.sin(power);
+                }
+                return this.normalize(waveform);
+
+            }
+            // Генерация эллиптической функции Якоби SN
+            jacobiSN(k = 0.7, length = 4096) {
+                const waveform = new Float32Array(length);
+                for (let i = 0; i < length; i++) {
+                    const x = (i / length) * 2 * Math.PI;
+                    const sn = Math.sin(x) + (k*k/4) * (x - Math.sin(x)*Math.cos(x)) * Math.cos(x);
+                    waveform[i] = Math.tanh(sn * 2);
+                }
+                return this.normalize(waveform);
+            }
+
+            // Генерация синусоидальной волны с гиперболическим ограничением
+            sinTanh(alpha = 2.0, length = 4096) {
+                const waveform = new Float32Array(length);
+                for (let i = 0; i < length; i++) {
+                    const x = (i / length) * 2 * Math.PI;
+                    waveform[i] = Math.sin(x) * Math.tanh(alpha * x);
+                }
+                return this.normalize(waveform);
+            }
+
+            // Генерация синусоидальной волны с фазовой модуляцией
+            phaseModulatedSine(modulation = 0.5, rate = 2.0, length = 4096) {
+                const waveform = new Float32Array(length);
+                for (let i = 0; i < length; i++) {
+                    const x = (i / length) * 2 * Math.PI;
+                    waveform[i] = Math.sin(x + modulation * Math.tanh(rate * x));
+                }
+                return this.normalize(waveform);
+            }
+
+            // Комбинирование нескольких форм волн с весами
+            combineWaveforms(waveforms, weights = null) {
+                const length = waveforms[0].length;
+                const result = new Float32Array(length);
+                
+                if (!weights) {
+                    weights = new Array(waveforms.length).fill(1 / waveforms.length);
+                }
+
+                for (let i = 0; i < length; i++) {
+                    let sample = 0;
+                    for (let j = 0; j < waveforms.length; j++) {
+                        sample += waveforms[j][i] * weights[j];
+                    }
+                    result[i] = sample;
+                }
+                
+                return this.normalize(result);
+            }
+
+            // Нормализация формы волны для предотвращения клиппинга
+            normalize(waveform) {
+                let max = 0;
+                for (let i = 0; i < waveform.length; i++) {
+                    max = Math.max(max, Math.abs(waveform[i]));
+                }
+                if (max > 0) {
+                    for (let i = 0; i < waveform.length; i++) {
+                        waveform[i] /= max;
+                    }
+                }
+                return waveform;
+            }
+
+            // Создание периодической волны для Web Audio API
+            createPeriodicWave(waveform) {
+                if (!this.audioContext) return null;
+                
+                const real = new Float32Array(waveform.length);
+                const imag = new Float32Array(waveform.length);
+                
+                for (let i = 0; i < waveform.length; i++) {
+                    real[i] = waveform[i];
+                }
+                
+                return this.audioContext.createPeriodicWave(real, imag);
+            }
+        }
+
+        /**
+         * Основной класс DAW (Digital Audio Workstation)
+         * Управляет созданием, воспроизведением и визуализацией нот
+         */
+        class SimpleDAW {
+            constructor() {
+                this.audioContext = null;
+                this.notes = [];
+                this.isPlaying = false;
+                this.currentTime = 0;
+                this.startTime = 0;
+                this.canvas = document.getElementById('spectrumCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.noteTooltip = document.getElementById('noteTooltip');
+                this.selectedNote = null;
+                
+                this.waveformGenerator = new WaveformGenerator();
+                
+                // Доступные формы волн
+                this.waveforms = [
+                    { id: 'sine', name: 'Синус', description: 'Чистая синусоидальная волна' },
+                    { id: 'triangle', name: 'Треугольная', description: 'Треугольная волна с мягким звучанием' },
+                    { id: 'sawtooth', name: 'Пилообразная', description: 'Пилообразная волна с богатым спектром' },
+                    { id: 'square', name: 'Прямоугольная', description: 'Прямоугольная волна 50% скважности' },
+                    { id: 'pulse25', name: 'Импульсная 25%', description: 'Импульсная волна с узким импульсом' },
+                    { id: 'pulse10', name: 'Импульсная 10%', description: 'Импульсная волна с очень узким импульсом' },
+                    { id: 'richsine', name: 'Богатый синус', description: 'Синус с 3-й и 7-й гармониками' },
+                    { id: 'supersaw', name: 'Супер пила', description: 'Множество детюнированных пил' },
+                    { id: 'whitenoise', name: 'Белый шум', description: 'Равномерный шумовой спектр' },
+                    { id: 'pinknoise', name: 'Розовый шум', description: 'Шум с падением -3dB/октава' },
+                    { id: 'brownnoise', name: 'Коричневый шум', description: 'Шум с падением -6dB/октава' },
+                    { id: 'hyperbolicsine', name: 'Гиперб. синус', description: 'Экспоненциальная форма волны' },
+                    { id: 'hyperboliccosine', name: 'Гиперб. косинус', description: 'Экспоненциальная симметричная волна' },
+                    { id: 'hyperbolictangent', name: 'Гиперб. тангенс', description: 'Мягкое ограничение, аналоговый звук' },
+                    { id: 'tanhcospower', name: 'Tanh(Cos(x^Cos(x)))', description: 'Сложная математическая форма' },
+                    { id: 'sinxpowersinx', name: 'sinxpowersinx', description: 'Синус икса в степени 2/3 на синус икс в степени 2/3'},
+                    { id: 'jacobisn', name: 'Эллиптическая SN', description: 'Эллиптическая функция Якоби' },
+                    { id: 'sintanh', name: 'Sin*Tanh', description: 'Синус с гиперболическим ограничением' },
+                    { id: 'phasemodulated', name: 'Фазовая модуляция', description: 'Синус с фазовой модуляцией' }
+                ];
+                
+                this.initializeAudio();
+                this.setupCanvas();
+                this.initializeWaveformSelectors();
+                this.setupEventListeners();
+                this.setupWaveformLibrary();
+                this.animationFrame = null;
+                
+                this.addExampleNotes();
+            }
+            
+            // Настройка обработчиков для библиотеки волн
+            setupWaveformLibrary() {
+                const waveformItems = document.querySelectorAll('.waveform-item');
+                
+                waveformItems.forEach(item => {
+                    item.addEventListener('click', () => {
+                        // Убираем активный класс у всех
+                        waveformItems.forEach(i => i.classList.remove('active'));
+                        // Добавляем активный класс к выбранному
+                        item.classList.add('active');
+                        
+                        const waveformType = item.getAttribute('data-wave');
+                        document.getElementById('waveform').value = waveformType;
+                        this.updateWaveDescription();
+                        
+                        this.setStatus(`Выбрана волна: ${waveformType}`);
+                    });
+                });
+            }
+            
+            // Инициализация аудио контекста
+            initializeAudio() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.waveformGenerator.setAudioContext(this.audioContext);
+                    this.setStatus('Аудио система инициализирована ✓');
+                } catch (e) {
+                    this.setStatus('Ошибка инициализации аудио: ' + e.message);
+                }
+            }
+            
+            // Инициализация выпадающих списков форм волн
+            initializeWaveformSelectors() {
+                const waveformSelect = document.getElementById('waveform');
+                const tooltipWaveformSelect = document.getElementById('tooltipWaveform');
+                
+                // Очищаем существующие опции
+                waveformSelect.innerHTML = '';
+                tooltipWaveformSelect.innerHTML = '';
+                
+                // Добавляем все волны в выпадающие списки
+                this.waveforms.forEach(wave => {
+                    const option = document.createElement('option');
+                    option.value = wave.id;
+                    option.textContent = wave.name;
+                    option.setAttribute('data-description', wave.description);
+                    waveformSelect.appendChild(option);
+                    
+                    const tooltipOption = option.cloneNode(true);
+                    tooltipWaveformSelect.appendChild(tooltipOption);
+                });
+                
+                // Инициализируем описания
+                this.updateWaveDescription();
+            }
+            
+            // Настройка обработчиков событий
+            setupEventListeners() {
+                // Обработчики кнопок
+                document.getElementById('addNoteBtn').addEventListener('click', () => this.addNoteAtPosition(this.canvas.width/2));
+                document.getElementById('clearBtn').addEventListener('click', () => this.clearNotes());
+                document.getElementById('randomBtn').addEventListener('click', () => this.generateRandomComposition());
+                document.getElementById('playBtn').addEventListener('click', () => this.startPlayback());
+                document.getElementById('stopBtn').addEventListener('click', () => this.stopPlayback());
+                document.getElementById('updateNoteBtn').addEventListener('click', () => this.updateSelectedNote());
+                document.getElementById('deleteNoteBtn').addEventListener('click', () => this.deleteSelectedNote());
+                
+                // Обработчики слайдеров
+                document.getElementById('frequency').addEventListener('input', (e) => {
+                    document.getElementById('freqValue').textContent = e.target.value + ' Гц';
+                });
+                
+                document.getElementById('duration').addEventListener('input', (e) => {
+                    document.getElementById('durValue').textContent = e.target.value + ' с';
+                });
+                
+                document.getElementById('offset').addEventListener('input', (e) => {
+                    document.getElementById('offsetValue').textContent = e.target.value + ' с';
+                });
+                
+                document.getElementById('volume').addEventListener('input', (e) => {
+                    document.getElementById('volValue').textContent = e.target.value + '%';
+                });
+                
+                document.getElementById('pan').addEventListener('input', (e) => {
+                    const panValue = parseInt(e.target.value);
+                    let panText = 'Центр';
+                    if (panValue < -30) panText = 'Лево';
+                    if (panValue > 30) panText = 'Право';
+                    document.getElementById('panValue').textContent = panText;
+                });
+                
+                document.getElementById('lfoRate').addEventListener('input', (e) => {
+                    document.getElementById('lfoRateValue').textContent = e.target.value + ' Гц';
+                });
+                
+                document.getElementById('lfoDepth').addEventListener('input', (e) => {
+                    document.getElementById('lfoDepthValue').textContent = e.target.value + '%';
+                });
+                
+                document.getElementById('waveform').addEventListener('change', (e) => {
+                    this.updateWaveDescription();
+                });
+
+                // Обработчики изменения размера окна
+                window.addEventListener('resize', () => this.setupCanvas());
+                
+                // Обработчики кликов по холсту
+                this.canvas.addEventListener('click', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    const clickedNote = this.findNoteAtPosition(x, y);
+                    if (clickedNote) {
+                        this.showNoteTooltip(clickedNote, x, y);
+                    } else {
+                        this.addNoteAtPosition(x);
+                        this.hideNoteTooltip();
+                    }
+                });
+                
+                // Скрытие тултипа при клике вне его области
+                document.addEventListener('click', (e) => {
+                    if (!this.noteTooltip.contains(e.target) && e.target !== this.canvas) {
+                        this.hideNoteTooltip();
+                    }
+                });
+                
+                // Обработчики для тултипа
+                document.getElementById('tooltipFrequency').addEventListener('input', (e) => {
+                    document.getElementById('tooltipFreqValue').textContent = e.target.value + ' Гц';
+                });
+                
+                document.getElementById('tooltipDuration').addEventListener('input', (e) => {
+                    document.getElementById('tooltipDurValue').textContent = e.target.value + ' с';
+                });
+                
+                document.getElementById('tooltipOffset').addEventListener('input', (e) => {
+                    document.getElementById('tooltipOffsetValue').textContent = e.target.value + ' с';
+                });
+                
+                document.getElementById('tooltipVolume').addEventListener('input', (e) => {
+                    document.getElementById('tooltipVolValue').textContent = e.target.value + '%';
+                });
+            }
+
+            // Обновление активной волны в библиотеке
+            updateActiveWaveInLibrary(waveformId) {
+                const waveformItems = document.querySelectorAll('.waveform-item');
+                waveformItems.forEach(item => {
+                    if (item.getAttribute('data-wave') === waveformId) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+
+            // Обновление описания формы волны
+            updateWaveDescription() {
+                const waveformSelect = document.getElementById('waveform');
+                const waveDescription = document.getElementById('waveDescription');
+                
+                if (!waveformSelect || !waveDescription) return;
+                
+                const selectedOption = waveformSelect.options[waveformSelect.selectedIndex];
+                const description = selectedOption.getAttribute('data-description') || 'Выберите форму волны';
+                waveDescription.textContent = description;
+            }
+            
+            // Настройка холста
+            setupCanvas() {
+                const container = this.canvas.parentElement;
+                this.canvas.width = container.clientWidth;
+                this.canvas.height = container.clientHeight;
+                this.draw();
+            }
+            
+            // Добавление примеров нот при инициализации
+            addExampleNotes() {
+                setTimeout(() => {
+                    this.addNote(1, 261.63, 1.5, 80, 0, 'sine', 2, 20, 'frequency', 0);
+                    this.addNote(3, 329.63, 1, 70, -50, 'triangle', 5, 30, 'pan', 0.1);
+                    this.addNote(5, 392.00, 2, 90, 50, 'square', 1, 40, 'volume', 0.2);
+                    this.draw();
+                }, 500);
+            }
+            
+            // Добавление ноты по позиции на холсте
+            addNoteAtPosition(x) {
+                const time = (x / this.canvas.width) * 10;
+                const frequency = parseFloat(document.getElementById('frequency').value);
+                const duration = parseFloat(document.getElementById('duration').value);
+                const offset = parseFloat(document.getElementById('offset').value);
+                const volume = parseInt(document.getElementById('volume').value);
+                const pan = parseInt(document.getElementById('pan').value);
+                const waveform = document.getElementById('waveform').value;
+                const lfoRate = parseFloat(document.getElementById('lfoRate').value);
+                const lfoDepth = parseInt(document.getElementById('lfoDepth').value);
+                const lfoTarget = document.getElementById('lfoTarget').value;
+                
+                this.addNote(time, frequency, duration, volume, pan, waveform, lfoRate, lfoDepth, lfoTarget, offset);
+                this.draw();
+            }
+            
+            // Добавление ноты с заданными параметрами
+            addNote(time, frequency, duration, volume, pan = 0, waveform = 'sine', lfoRate = 2, lfoDepth = 30, lfoTarget = 'frequency', offset = 0) {
+                const note = {
+                    id: Date.now() + Math.random(),
+                    time: time,
+                    frequency: frequency,
+                    duration: duration,
+                    offset: offset,
+                    volume: volume / 100,
+                    pan: pan / 100,
+                    waveform: waveform,
+                    lfoRate: lfoRate,
+                    lfoDepth: lfoDepth / 100,
+                    lfoTarget: lfoTarget,
+                    lfoPhase: Math.random() * Math.PI * 2
+                };
+                
+                this.notes.push(note);
+                this.setStatus(`Добавлена нота: ${frequency.toFixed(1)} Гц`);
+                
+                return note;
+            }
+            
+            // Поиск ноты по позиции на холсте
+            findNoteAtPosition(x, y) {
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                
+                for (let i = this.notes.length - 1; i >= 0; i--) {
+                    const note = this.notes[i];
+                    const noteX = (note.time / 10) * width;
+                    const noteY = height - ((note.frequency - 50) / 1950) * height;
+                    const noteWidth = (note.duration / 10) * width;
+                    const noteHeight = 20;
+                    
+                    if (x >= noteX - noteWidth/2 && x <= noteX + noteWidth/2 &&
+                        y >= noteY - noteHeight/2 && y <= noteY + noteHeight/2) {
+                        return note;
+                    }
+                }
+                return null;
+            }
+            
+            // Показать всплывающее окно для настройки ноты
+            showNoteTooltip(note, x, y) {
+                this.selectedNote = note;
+                
+                document.getElementById('tooltipWaveform').value = note.waveform;
+                document.getElementById('tooltipFrequency').value = note.frequency;
+                document.getElementById('tooltipFreqValue').textContent = note.frequency + ' Гц';
+                document.getElementById('tooltipDuration').value = note.duration;
+                document.getElementById('tooltipDurValue').textContent = note.duration + ' с';
+                document.getElementById('tooltipOffset').value = note.offset;
+                document.getElementById('tooltipOffsetValue').textContent = note.offset + ' с';
+                document.getElementById('tooltipVolume').value = note.volume * 100;
+                document.getElementById('tooltipVolValue').textContent = Math.round(note.volume * 100) + '%';
+                
+                const tooltip = this.noteTooltip;
+                tooltip.style.left = (x + 10) + 'px';
+                tooltip.style.top = (y - 500) + 'px';
+                tooltip.style.display = 'block';
+            }
+            
+            // Скрыть всплывающее окно
+            hideNoteTooltip() {
+                this.noteTooltip.style.display = 'none';
+                this.selectedNote = null;
+            }
+            
+            // Обновить выбранную ноту
+            updateSelectedNote() {
+                if (!this.selectedNote) return;
+                
+                this.selectedNote.waveform = document.getElementById('tooltipWaveform').value;
+                this.selectedNote.frequency = parseFloat(document.getElementById('tooltipFrequency').value);
+                this.selectedNote.duration = parseFloat(document.getElementById('tooltipDuration').value);
+                this.selectedNote.offset = parseFloat(document.getElementById('tooltipOffset').value);
+                this.selectedNote.volume = parseInt(document.getElementById('tooltipVolume').value) / 100;
+                
+                this.draw();
+                this.setStatus(`Нота обновлена: ${this.selectedNote.frequency.toFixed(1)} Гц`);
+            }
+            
+            // Удалить выбранную ноту
+            deleteSelectedNote() {
+                if (!this.selectedNote) return;
+                
+                const index = this.notes.indexOf(this.selectedNote);
+                if (index !== -1) {
+                    this.notes.splice(index, 1);
+                    this.setStatus('Нота удалена');
+                    this.hideNoteTooltip();
+                    this.draw();
+                }
+            }
+            
+            // Очистить все ноты
+            clearNotes() {
+                this.notes = [];
+                this.hideNoteTooltip();
+                this.draw();
+                this.setStatus('Все ноты удалены');
+            }
+            
+            // Генерация случайной композиции
+            generateRandomComposition() {
+                this.clearNotes();
+                
+                const lfoTargets = ['frequency', 'pan', 'volume'];
+                
+                for (let i = 0; i < 8; i++) {
+                    const time = 1 + Math.random() * 8;
+                    const frequency = 100 + Math.random() * 1000;
+                    const duration = 0.5 + Math.random() * 2;
+                    const offset = Math.random() * 0.5;
+                    const volume = 30 + Math.random() * 70;
+                    const pan = -80 + Math.random() * 160;
+                    const waveform = this.waveforms[Math.floor(Math.random() * this.waveforms.length)].id;
+                    const lfoRate = 0.5 + Math.random() * 5;
+                    const lfoDepth = 10 + Math.random() * 60;
+                    const lfoTarget = lfoTargets[Math.floor(Math.random() * lfoTargets.length)];
+                    
+                    this.addNote(time, frequency, duration, volume, pan, waveform, lfoRate, lfoDepth, lfoTarget, offset);
+                }
+                this.currentTime = 0;
+                this.draw();
+                this.setStatus('Создана случайная композиция');
+            }
+            
+            // Начать воспроизведение
+            startPlayback() {
+                if (this.isPlaying) return;
+                
+                this.isPlaying = true;
+                this.startTime = this.audioContext.currentTime;
+                this.currentTime = 0;
+                
+                this.notes.forEach(note => {
+                    this.playNote(note);
+                });
+                
+                this.setStatus('Воспроизведение начато');
+                this.animatePlayback();
+            }
+            
+            // Остановить воспроизведение
+            stopPlayback() {
+                this.isPlaying = false;
+                if (this.animationFrame) {
+                    cancelAnimationFrame(this.animationFrame);
+                    this.animationFrame = null;
+                }
+                this.currentTime = 0;
+                this.draw();
+                this.setStatus('Воспроизведение остановлено');
+            }
+            
+            // Воспроизведение отдельной ноты
+            playNote(note) {
+                if (!this.audioContext) return;
+                
+                const startTime = this.startTime + note.time + note.offset;
+                let oscillator;
+                
+                // Создание осциллятора или источника шума
+                if (note.waveform === 'whitenoise' || note.waveform === 'pinknoise' || note.waveform === 'brownnoise') {
+                    oscillator = this.createNoiseOscillator(note.waveform);
+                } else {
+                    oscillator = this.audioContext.createOscillator();
+                    
+                    if (['sine', 'square', 'sawtooth', 'triangle'].includes(note.waveform)) {
+                        oscillator.type = note.waveform;
+                    } else {
+                        const customWaveform = this.generateCustomWaveform(note.waveform);
+                        const periodicWave = this.waveformGenerator.createPeriodicWave(customWaveform);
+                        if (periodicWave) {
+                            oscillator.setPeriodicWave(periodicWave);
+                        } else {
+                            oscillator.type = 'sine';
+                        }
+                    }
+                    
+                    oscillator.frequency.setValueAtTime(note.frequency, startTime);
+                }
+                
+                // Создание узлов для управления громкостью и панорамой
+                const gainNode = this.audioContext.createGain();
+                gainNode.gain.setValueAtTime(note.volume, startTime);
+                
+                const panner = this.audioContext.createStereoPanner();
+                panner.pan.setValueAtTime(note.pan, startTime);
+                
+                // Применение LFO модуляции
+                this.applyLFOModulation(note, oscillator, gainNode, panner, startTime);
+                
+                // Затухание громкости в конце ноты
+                gainNode.gain.linearRampToValueAtTime(0, startTime + note.duration);
+                
+                // Подключение узлов
+                oscillator.connect(gainNode);
+                gainNode.connect(panner);
+                panner.connect(this.audioContext.destination);
+                
+                // Запуск и остановка осциллятора
+                if (oscillator.start) {
+                    oscillator.start(startTime);
+                    oscillator.stop(startTime + note.duration);
+                }
+            }
+            
+            // Генерация пользовательской формы волны
+            generateCustomWaveform(waveType) {
+                switch (waveType) {
+                    case 'pulse25': return this.waveformGenerator.pulse(0.25);
+                    case 'pulse10': return this.waveformGenerator.pulse(0.1);
+                    case 'richsine': return this.waveformGenerator.richSine(0.3, 0.1);
+                    case 'supersaw': return this.waveformGenerator.superSaw();
+                    case 'hyperbolicsine': return this.waveformGenerator.hyperbolicSine();
+                    case 'hyperboliccosine': return this.waveformGenerator.hyperbolicCosine();
+                    case 'hyperbolictangent': return this.waveformGenerator.hyperbolicTangent();
+                    case 'tanhcospower': return this.waveformGenerator.tanhCosPower();
+                    case 'jacobisn': return this.waveformGenerator.jacobiSN();
+                    case 'sintanh': return this.waveformGenerator.sinTanh();
+                    case 'sinxpowersinx': return this.waveformGenerator.sinxpowersinx();
+                    case 'phasemodulated': return this.waveformGenerator.phaseModulatedSine();
+                    default: return this.waveformGenerator.sine();
+                }
+            }
+            
+            // Создание осциллятора шума
+            createNoiseOscillator(type) {
+                const bufferSize = this.audioContext.sampleRate * 2;
+                const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                if (type === 'whitenoise') {
+                    const noise = this.waveformGenerator.whiteNoise(bufferSize);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = noise[i];
+                    }
+                } else if (type === 'pinknoise') {
+                    const noise = this.waveformGenerator.pinkNoise(bufferSize);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = noise[i];
+                    }
+                } else if (type === 'brownnoise') {
+                    const noise = this.waveformGenerator.brownNoise(bufferSize);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = noise[i];
+                    }
+                }
+                
+                const noiseSource = this.audioContext.createBufferSource();
+                noiseSource.buffer = buffer;
+                noiseSource.loop = true;
+                
+                return noiseSource;
+            }
+            
+            // Применение LFO модуляции к параметрам ноты
+            applyLFOModulation(note, oscillator, gainNode, panner, startTime) {
+                const lfoDepth = note.lfoDepth;
+                const lfoRate = note.lfoRate;
+                
+                const lfoOscillator = this.audioContext.createOscillator();
+                lfoOscillator.type = 'sine';
+                lfoOscillator.frequency.setValueAtTime(lfoRate, startTime);
+                
+                const lfoGain = this.audioContext.createGain();
+                
+                // Подключение LFO осциллятора к gain узлу
+                lfoOscillator.connect(lfoGain);
+                
+                let targetParam;
+                let baseValue;
+                let modulationAmount;
+
+                // Выбор целевого параметра для модуляции
+                switch (note.lfoTarget) {
+                    case 'frequency':
+                        if (oscillator.frequency) {
+                            targetParam = oscillator.frequency;
+                            baseValue = note.frequency;
+                            modulationAmount = note.frequency * lfoDepth;
+                            
+                            targetParam.setValueAtTime(baseValue, startTime);
+                            lfoGain.connect(targetParam);
+                            lfoGain.gain.setValueAtTime(modulationAmount, startTime);
+                        }
+                        break;
+                        
+                    case 'pan':
+                        if (panner.pan) {
+                            targetParam = panner.pan;
+                            baseValue = note.pan;
+                            modulationAmount = lfoDepth;
+                            
+                            targetParam.setValueAtTime(baseValue, startTime);
+                            lfoGain.connect(targetParam);
+                            lfoGain.gain.setValueAtTime(modulationAmount, startTime);
+                        }
+                        break;
+                        
+                    case 'volume':
+                        if (gainNode.gain) {
+                            targetParam = gainNode.gain;
+                            baseValue = note.volume;
+                            modulationAmount = note.volume * lfoDepth;
+                            
+                            targetParam.setValueAtTime(baseValue, startTime);
+                            lfoGain.connect(targetParam);
+                            lfoGain.gain.setValueAtTime(modulationAmount, startTime);
+                        }
+                        break;
+                        
+                    default:
+                        console.warn('Неизвестная цель LFO:', note.lfoTarget);
+                        lfoOscillator.disconnect();
+                        lfoGain.disconnect();
+                        return;
+                }
+                
+                // Запуск LFO осциллятора
+                lfoOscillator.start(startTime);
+                lfoOscillator.stop(startTime + note.duration);
+                
+                // Очистка ресурсов после завершения
+                lfoOscillator.onended = () => {
+                    lfoOscillator.disconnect();
+                    lfoGain.disconnect();
+                };
+            }
+            
+            // Анимация воспроизведения
+            animatePlayback() {
+                if (!this.isPlaying) return;
+                
+                this.currentTime = this.audioContext.currentTime - this.startTime;
+                this.draw();
+                
+                this.animationFrame = requestAnimationFrame(() => this.animatePlayback());
+            }
+            
+            // Отрисовка холста
+            draw() {
+                const ctx = this.ctx;
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                
+                // Очистка холста
+                ctx.fillStyle = 'rgba(12, 12, 29, 0.7)';
+                ctx.fillRect(0, 0, width, height);
+                
+                this.drawGrid();
+                
+                // Отрисовка всех нот
+                this.notes.forEach(note => {
+                    this.drawNote(note);
+                });
+                
+                // Отрисовка курсора воспроизведения
+                if (this.isPlaying) {
+                    this.drawPlaybackCursor();
+                }
+            }
+            
+            // Отрисовка сетки на холсте
+            drawGrid() {
+                const ctx = this.ctx;
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                
+                ctx.strokeStyle = 'rgba(100, 100, 150, 0.2)';
+                ctx.lineWidth = 1;
+                
+                // Вертикальные линии
+                for (let i = 1; i < 10; i++) {
+                    const x = (i / 10) * width;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+                
+                // Горизонтальные линии
+                for (let i = 1; i < 10; i++) {
+                    const y = (i / 10) * height;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+            }
+            
+            // Отрисовка отдельной ноты
+            drawNote(note) {
+                const ctx = this.ctx;
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                
+                // Вычисление позиции и размера ноты
+                const x = (note.time / 10) * width;
+                const y = height - ((note.frequency - 50) / 1950) * height;
+                const noteWidth = (note.duration / 10) * width;
+                const noteHeight = 20;
+                
+                // Определение цвета в зависимости от панорамы
+                let hue = 200;
+                if (note.pan < 0) hue = 0;
+                if (note.pan > 0) hue = 120;
+                
+                const saturation = 80;
+                const lightness = 30 + note.volume * 40;
+                
+                // Отрисовка прямоугольника ноты
+                ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+                ctx.fillRect(x - noteWidth/2, y - noteHeight/2, noteWidth, noteHeight);
+                
+                // Отрисовка обводки
+                ctx.strokeStyle = `hsl(${hue}, ${saturation}%, ${lightness + 20}%)`;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x - noteWidth/2, y - noteHeight/2, noteWidth, noteHeight);
+                
+                // Эффект мерцания при воспроизведении (LFO визуализация)
+                if (this.isPlaying) {
+                    const currentTime = this.audioContext.currentTime;
+                    const lfoValue = Math.sin(note.lfoPhase + currentTime * note.lfoRate * 2 * Math.PI);
+                    
+                    let flickerColor;
+                    switch (note.lfoTarget) {
+                        case 'frequency':
+                            flickerColor = 'rgba(255, 255, 0, 0.5)';
+                            break;
+                        case 'pan':
+                            flickerColor = 'rgba(0, 255, 255, 0.5)';
+                            break;
+                        case 'volume':
+                            flickerColor = 'rgba(0, 255, 0, 0.5)';
+                            break;
+                        default:
+                            flickerColor = 'rgba(255, 255, 255, 0.3)';
+                    }
+                    
+                    const flickerAlpha = 0.3 + 0.4 * (lfoValue * note.lfoDepth);
+                    ctx.fillStyle = flickerColor;
+                    ctx.globalAlpha = flickerAlpha;
+                    ctx.fillRect(x - noteWidth/2, y - noteHeight/2, noteWidth, noteHeight);
+                    ctx.globalAlpha = 1;
+                }
+                
+                // Отображение частоты ноты
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(note.frequency.toFixed(0) + ' Гц', x, y + 4);
+                
+                // Отображение смещения (offset)
+                if (note.offset > 0) {
+                    const offsetX = x - (note.offset / 10) * width;
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(offsetX, y - noteHeight/2);
+                    ctx.lineTo(offsetX, y + noteHeight/2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+            
+            // Отрисовка курсора воспроизведения
+            drawPlaybackCursor() {
+                const ctx = this.ctx;
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                
+                const x = (this.currentTime / 10) * width;
+                
+                // Вертикальная линия
+                ctx.strokeStyle = '#4cc9f0';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+                
+                // Треугольник-указатель
+                ctx.fillStyle = '#4cc9f0';
+                ctx.beginPath();
+                ctx.moveTo(x - 8, 10);
+                ctx.lineTo(x + 8, 10);
+                ctx.lineTo(x, 20);
+                ctx.closePath();
+                ctx.fill();
+            }
+            
+            // Обновление статуса в интерфейсе
+            setStatus(message) {
+                document.getElementById('status').textContent = message;
+            }
+        }
+        
+        // Инициализация DAW после загрузки DOM
+        document.addEventListener('DOMContentLoaded', () => {
+            new SimpleDAW();
+        });
+    </script>
+</body>
+</html>
